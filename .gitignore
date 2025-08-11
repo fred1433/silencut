@@ -8,7 +8,8 @@ venv/
 env/
 ENV/
 
-# Fichiers de test
+# Fichiers de test et vidéos
+test_videos/
 *.mp4
 *.m4a
 *.wav
@@ -16,6 +17,14 @@ ENV/
 *.avi
 *.mov
 *.mkv
+*.webm
+*.png
+*.jpg
+
+# Dossiers de l'application web
+webapp/uploads/
+webapp/outputs/
+webapp/temp/
 
 # Fichiers temporaires
 *.tmp

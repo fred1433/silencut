@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilenCut - Suppression intelligente de silence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .upload-area:hover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8e8ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .parameters {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .value-display {
+            min-width: 80px;
+            text-align: right;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #ddd;
+        }
+
+        .progress-container {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .processing {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 SilenCut</h1>
+        <p class="subtitle">Supprimez intelligemment les silences de vos vidéos</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📹</div>
+            <p><strong>Glissez votre vidéo ici</strong></p>
+            <p>ou cliquez pour sélectionner</p>
+            <p style="margin-top: 10px; font-size: 12px; color: #999;">
+                Formats supportés : MP4, MOV, AVI, MKV, WebM • Max 500MB
+            </p>
+            <input type="file" id="fileInput" accept="video/*,audio/*">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <strong>Fichier sélectionné :</strong> <span id="fileName"></span><br>
+            <strong>Taille :</strong> <span id="fileSize"></span>
+        </div>
+
+        <div class="parameters" id="parameters">
+            <h3 style="margin-bottom: 20px;">⚙️ Paramètres</h3>
+            
+            <div class="param-group">
+                <label>Seuil de détection (dBFS)</label>
+                <div class="slider-container">
+                    <input type="range" id="threshold" min="-60" max="-20" value="-40" step="1">
+                    <span class="value-display" id="thresholdValue">-40 dBFS</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>Silence minimum à supprimer (ms)</label>
+                <div class="slider-container">
+                    <input type="range" id="minSilence" min="100" max="2000" value="270" step="10">
+                    <span class="value-display" id="minSilenceValue">270 ms</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>Bruit maximum à ignorer (ms)</label>
+                <div class="slider-container">
+                    <input type="range" id="minNoise" min="0" max="500" value="70" step="10">
+                    <span class="value-display" id="minNoiseValue">70 ms</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>Marge autour des coupes (ms)</label>
+                <div class="slider-container">
+                    <input type="range" id="margin" min="0" max="200" value="20" step="5">
+                    <span class="value-display" id="marginValue">20 ms</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>Qualité vidéo (CRF - plus bas = meilleure qualité)</label>
+                <div class="slider-container">
+                    <input type="range" id="crf" min="15" max="30" value="18" step="1">
+                    <span class="value-display" id="crfValue">18</span>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-secondary" onclick="resetParameters()">Réinitialiser</button>
+                <button class="btn-primary" id="processBtn" onclick="startProcessing()">
+                    🚀 Lancer le traitement
+                </button>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div class="status-message" id="statusMessage">Initialisation...</div>
+        </div>
+
+        <div class="result" id="result">
+            <h3>✅ Traitement terminé !</h3>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="durationOriginal">-</div>
+                    <div class="stat-label">Durée originale</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="durationFinal">-</div>
+                    <div class="stat-label">Durée finale</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="reduction">-</div>
+                    <div class="stat-label">Réduction</div>
+                </div>
+            </div>
+            <button class="download-btn" id="downloadBtn">
+                ⬇️ Télécharger la vidéo traitée
+            </button>
+        </div>
+
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let selectedFile = null;
+        let currentJobId = null;
+        let ws = null;
+
+        // Upload area
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const parameters = document.getElementById('parameters');
+
+        // Drag & Drop
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'block';
+            parameters.style.display = 'block';
+            hideError();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Sliders
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const valueDisplay = document.getElementById(e.target.id + 'Value');
+                let value = e.target.value;
+                
+                if (e.target.id === 'threshold') {
+                    value += ' dBFS';
+                } else if (e.target.id !== 'crf') {
+                    value += ' ms';
+                }
+                
+                valueDisplay.textContent = value;
+            });
+        });
+
+        function resetParameters() {
+            document.getElementById('threshold').value = -40;
+            document.getElementById('minSilence').value = 270;
+            document.getElementById('minNoise').value = 70;
+            document.getElementById('margin').value = 20;
+            document.getElementById('crf').value = 18;
+            
+            document.getElementById('thresholdValue').textContent = '-40 dBFS';
+            document.getElementById('minSilenceValue').textContent = '270 ms';
+            document.getElementById('minNoiseValue').textContent = '70 ms';
+            document.getElementById('marginValue').textContent = '20 ms';
+            document.getElementById('crfValue').textContent = '18';
+        }
+
+        async function startProcessing() {
+            if (!selectedFile) {
+                showError("Veuillez sélectionner un fichier");
+                return;
+            }
+
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = true;
+            hideError();
+            
+            try {
+                // Upload
+                showProgress(0, "Upload du fichier...");
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                
+                const uploadResponse = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!uploadResponse.ok) {
+                    throw new Error(await uploadResponse.text());
+                }
+                
+                const uploadResult = await uploadResponse.json();
+                currentJobId = uploadResult.job_id;
+                
+                // WebSocket pour les notifications
+                connectWebSocket(currentJobId);
+                
+                // Lancer le traitement
+                showProgress(5, "Lancement du traitement...");
+                
+                const processResponse = await fetch(`${API_URL}/process/${currentJobId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        threshold_db: parseFloat(document.getElementById('threshold').value),
+                        min_silence_ms: parseFloat(document.getElementById('minSilence').value),
+                        min_noise_ms: parseFloat(document.getElementById('minNoise').value),
+                        hysteresis_db: 3.0,
+                        margin_ms: parseFloat(document.getElementById('margin').value),
+                        crf: parseInt(document.getElementById('crf').value),
+                        audio_bitrate: "192k"
+                    })
+                });
+                
+                if (!processResponse.ok) {
+                    throw new Error(await processResponse.text());
+                }
+                
+                // Le WebSocket prendra le relais pour les mises à jour
+                
+            } catch (error) {
+                showError("Erreur : " + error.message);
+                processBtn.disabled = false;
+            }
+        }
+
+        function connectWebSocket(jobId) {
+            ws = new WebSocket(`ws://${window.location.host}/ws/${jobId}`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateProgress(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                // Fallback to polling
+                pollStatus(jobId);
+            };
+        }
+
+        function updateProgress(data) {
+            const progress = data.progress || 0;
+            const message = data.message || "Traitement en cours...";
+            
+            showProgress(progress, message);
+            
+            if (data.status === 'completed') {
+                showResult(data);
+                document.getElementById('processBtn').disabled = false;
+            } else if (data.status === 'failed') {
+                showError("Erreur : " + (data.error || "Le traitement a échoué"));
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        async function pollStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/status/${jobId}`);
+                    const data = await response.json();
+                    
+                    updateProgress(data);
+                    
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        clearInterval(interval);
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 1000);
+        }
+
+        function showProgress(percent, message) {
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressFill').textContent = Math.round(percent) + '%';
+            document.getElementById('statusMessage').textContent = message;
+            document.getElementById('result').style.display = 'none';
+        }
+
+        function showResult(data) {
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('result').style.display = 'block';
+            
+            const formatDuration = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = (seconds % 60).toFixed(1);
+                return `${mins}m ${secs}s`;
+            };
+            
+            document.getElementById('durationOriginal').textContent = formatDuration(data.duration_original);
+            document.getElementById('durationFinal').textContent = formatDuration(data.duration_final);
+            document.getElementById('reduction').textContent = data.reduction_percent.toFixed(1) + '%';
+            
+            document.getElementById('downloadBtn').onclick = () => {
+                window.location.href = `${API_URL}/download/${currentJobId}`;
+            };
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

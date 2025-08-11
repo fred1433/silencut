@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  silencut:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./webapp/uploads:/app/webapp/uploads
+      - ./webapp/outputs:/app/webapp/outputs
+    environment:
+      - MAX_FILE_SIZE=500000000
+      - CLEANUP_AFTER_HOURS=2
+    restart: unless-stopped
