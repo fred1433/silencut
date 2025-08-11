@@ -33,13 +33,13 @@ pip install -r requirements.txt
 python cut_silence.py input.mp4 output.mp4
 ```
 
-### Paramètres par défaut
+### Paramètres par défaut (optimisés pour la parole)
 
-- Seuil de détection : **-35 dBFS**
+- Seuil de détection : **-40 dBFS** (capte bien les consonnes faibles)
 - Silence minimum à supprimer : **270 ms**
 - Bruit maximum à ignorer : **70 ms**
 - Hystérésis : **3 dB**
-- Marge autour des coupes : **15 ms**
+- Marge autour des coupes : **20 ms** (équilibre optimal)
 
 ### Options avancées
 

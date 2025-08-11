@@ -19,11 +19,11 @@ import soundfile as sf
 class SilenceDetector:
     def __init__(
         self,
-        threshold_db: float = -35.0,
+        threshold_db: float = -40.0,
         min_silence_ms: float = 270.0,
         min_noise_ms: float = 70.0,
         hysteresis_db: float = 3.0,
-        margin_ms: float = 15.0,
+        margin_ms: float = 20.0,
         window_ms: float = 20.0,
         hop_ms: float = 10.0
     ):
@@ -225,8 +225,8 @@ Exemples:
     
     parser.add_argument(
         '--threshold', '-t',
-        type=float, default=-35.0,
-        help='Seuil de détection en dBFS (défaut: -35)'
+        type=float, default=-40.0,
+        help='Seuil de détection en dBFS (défaut: -40)'
     )
     parser.add_argument(
         '--min-silence', '-s',
@@ -245,8 +245,8 @@ Exemples:
     )
     parser.add_argument(
         '--margin',
-        type=float, default=15.0,
-        help='Marge de sécurité en ms autour des coupes (défaut: 15)'
+        type=float, default=20.0,
+        help='Marge de sécurité en ms autour des coupes (défaut: 20)'
     )
     parser.add_argument(
         '--crf',
@@ -280,11 +280,11 @@ Exemples:
     print("="*60)
     print(f"Entrée:       {args.input}")
     print(f"Sortie:       {args.output}")
-    print(f"Seuil:        {args.threshold} dBFS")
-    print(f"Silence min:  {args.min_silence} ms")
-    print(f"Bruit max:    {args.min_noise} ms")
-    print(f"Hystérésis:   {args.hysteresis} dB")
-    print(f"Marge:        {args.margin} ms")
+    print(f"Seuil:        {args.threshold} dBFS (défaut: -40)")
+    print(f"Silence min:  {args.min_silence} ms (défaut: 270)")
+    print(f"Bruit max:    {args.min_noise} ms (défaut: 70)")
+    print(f"Hystérésis:   {args.hysteresis} dB (défaut: 3)")
+    print(f"Marge:        {args.margin} ms (défaut: 20)")
     print("="*60)
     
     detector = SilenceDetector(
