@@ -92,6 +92,28 @@
             margin-top: 30px;
             display: none;
         }
+        
+        .parameters.expanded {
+            display: block !important;
+        }
+        
+        .simple-process {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .advanced-toggle {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 15px;
+            display: inline-block;
+            font-size: 14px;
+        }
+        
+        .advanced-toggle:hover {
+            color: #764ba2;
+        }
 
         .param-group {
             margin-bottom: 20px;
@@ -304,6 +326,16 @@
         <div class="file-info" id="fileInfo">
             <strong>Selected file:</strong> <span id="fileName"></span><br>
             <strong>Size:</strong> <span id="fileSize"></span>
+            
+            <div class="simple-process">
+                <button class="btn-primary" id="quickProcessBtn" onclick="startProcessing()" style="font-size: 18px; padding: 15px 40px;">
+                    🚀 Start Processing
+                </button>
+                <br>
+                <span class="advanced-toggle" onclick="toggleAdvanced()">
+                    ⚙️ Show advanced settings
+                </span>
+            </div>
         </div>
 
         <div class="parameters" id="parameters">
@@ -350,9 +382,10 @@
             </div>
 
             <div class="buttons">
-                <button class="btn-secondary" onclick="resetParameters()">Reset</button>
+                <button class="btn-secondary" onclick="resetParameters()">Reset to defaults</button>
+                <button class="btn-secondary" onclick="toggleAdvanced()">Hide settings</button>
                 <button class="btn-primary" id="processBtn" onclick="startProcessing()">
-                    🚀 Start Processing
+                    🚀 Apply & Process
                 </button>
             </div>
         </div>
@@ -433,7 +466,7 @@
             document.getElementById('fileName').textContent = file.name;
             document.getElementById('fileSize').textContent = formatFileSize(file.size);
             fileInfo.style.display = 'block';
-            parameters.style.display = 'block';
+            // Les paramètres restent cachés par défaut, l'utilisateur peut cliquer sur "advanced" s'il veut
             hideError();
         }
 
@@ -459,6 +492,19 @@
             });
         });
 
+        function toggleAdvanced() {
+            const params = document.getElementById('parameters');
+            const toggle = document.querySelector('.advanced-toggle');
+            
+            if (params.classList.contains('expanded')) {
+                params.classList.remove('expanded');
+                toggle.textContent = '⚙️ Show advanced settings';
+            } else {
+                params.classList.add('expanded');
+                toggle.textContent = '⚙️ Hide advanced settings';
+            }
+        }
+        
         function resetParameters() {
             document.getElementById('threshold').value = -40;
             document.getElementById('minSilence').value = 270;
