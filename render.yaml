@@ -2,12 +2,11 @@ services:
   - type: web
     name: silencut
     runtime: docker
-    repo: https://github.com/YOUR_USERNAME/silencut
+    repo: https://github.com/fred1433/silencut
+    region: oregon
+    plan: free
     dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
         value: 8000
-    disk:
-      name: silencut-storage
-      mountPath: /app/webapp/outputs
-      sizeGB: 1
+    autoDeploy: true
