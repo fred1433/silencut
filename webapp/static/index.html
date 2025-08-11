@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SilenCut - Suppression intelligente de silence</title>
+    <title>Remove Silence from Video Online Free - SilenCut | Couper les silences vidéo</title>
+    <meta name="description" content="Remove silence from videos automatically online. Free tool to cut silent parts from MP4, podcasts, courses. Reduce video duration by 70%. No download required.">
+    <meta name="keywords" content="remove silence from video, cut silence audio, video silence remover, automatic silence removal, podcast editor, supprimer silence vidéo, online video editor">
+    <link rel="canonical" href="https://silencut.com/">
     <style>
         * {
             margin: 0;
@@ -41,6 +44,10 @@
             text-align: center;
             color: #666;
             margin-bottom: 30px;
+        }
+        
+        .seo-text {
+            display: none;
         }
 
         .upload-area {
@@ -529,7 +536,8 @@
         }
 
         function connectWebSocket(jobId) {
-            ws = new WebSocket(`ws://${window.location.host}/ws/${jobId}`);
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws/${jobId}`);
             
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
