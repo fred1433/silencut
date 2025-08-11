@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Fichiers de test
+*.mp4
+*.m4a
+*.wav
+*.mp3
+*.avi
+*.mov
+*.mkv
+
+# Fichiers temporaires
+*.tmp
+temp_*
+intervals.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
