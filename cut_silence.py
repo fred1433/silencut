@@ -166,9 +166,10 @@ class VideoProcessor:
         
         for i, (start, end) in enumerate(intervals):
             duration = end - start
-            # Les fades sont maintenant relatifs au segment trimé (st=0 pour le fade in, st=duration-0.01 pour le fade out)
-            filters.append(f"[0:v]trim=start={start:.3f}:end={end:.3f},setpts=PTS-STARTPTS,fade=t=in:st=0:d=0.01,fade=t=out:st={duration-0.01:.3f}:d=0.01[v{i}]")
-            filters.append(f"[0:a]atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.01,afade=t=out:st={duration-0.01:.3f}:d=0.01[a{i}]")
+            # Pas de fade vidéo pour éviter les flashs noirs
+            # Micro-fades audio (3ms) pour éviter les clics aux transitions
+            filters.append(f"[0:v]trim=start={start:.3f}:end={end:.3f},setpts=PTS-STARTPTS[v{i}]")
+            filters.append(f"[0:a]atrim=start={start:.3f}:end={end:.3f},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.003,afade=t=out:st={duration-0.003:.3f}:d=0.003[a{i}]")
             outputs.extend([f"[v{i}]", f"[a{i}]"])
         
         concat = f"{''.join(outputs)}concat=n={len(intervals)}:v=1:a=1[v][a]"
