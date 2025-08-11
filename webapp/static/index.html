@@ -289,28 +289,28 @@
 <body>
     <div class="container">
         <h1>🎬 SilenCut</h1>
-        <p class="subtitle">Supprimez intelligemment les silences de vos vidéos</p>
+        <p class="subtitle">Remove silence from videos automatically - Free online tool</p>
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📹</div>
-            <p><strong>Glissez votre vidéo ici</strong></p>
-            <p>ou cliquez pour sélectionner</p>
+            <p><strong>Drop your video here</strong></p>
+            <p>or click to select</p>
             <p style="margin-top: 10px; font-size: 12px; color: #999;">
-                Formats supportés : MP4, MOV, AVI, MKV, WebM • Max 500MB
+                Supported formats: MP4, MOV, AVI, MKV, WebM • Max 500MB
             </p>
             <input type="file" id="fileInput" accept="video/*,audio/*">
         </div>
 
         <div class="file-info" id="fileInfo">
-            <strong>Fichier sélectionné :</strong> <span id="fileName"></span><br>
-            <strong>Taille :</strong> <span id="fileSize"></span>
+            <strong>Selected file:</strong> <span id="fileName"></span><br>
+            <strong>Size:</strong> <span id="fileSize"></span>
         </div>
 
         <div class="parameters" id="parameters">
-            <h3 style="margin-bottom: 20px;">⚙️ Paramètres</h3>
+            <h3 style="margin-bottom: 20px;">⚙️ Settings</h3>
             
             <div class="param-group">
-                <label>Seuil de détection (dBFS)</label>
+                <label>Detection threshold (dBFS)</label>
                 <div class="slider-container">
                     <input type="range" id="threshold" min="-60" max="-20" value="-40" step="1">
                     <span class="value-display" id="thresholdValue">-40 dBFS</span>
@@ -318,7 +318,7 @@
             </div>
 
             <div class="param-group">
-                <label>Silence minimum à supprimer (ms)</label>
+                <label>Minimum silence to remove (ms)</label>
                 <div class="slider-container">
                     <input type="range" id="minSilence" min="100" max="2000" value="270" step="10">
                     <span class="value-display" id="minSilenceValue">270 ms</span>
@@ -326,7 +326,7 @@
             </div>
 
             <div class="param-group">
-                <label>Bruit maximum à ignorer (ms)</label>
+                <label>Maximum noise to ignore (ms)</label>
                 <div class="slider-container">
                     <input type="range" id="minNoise" min="0" max="500" value="70" step="10">
                     <span class="value-display" id="minNoiseValue">70 ms</span>
@@ -334,7 +334,7 @@
             </div>
 
             <div class="param-group">
-                <label>Marge autour des coupes (ms)</label>
+                <label>Margin around cuts (ms)</label>
                 <div class="slider-container">
                     <input type="range" id="margin" min="0" max="200" value="20" step="5">
                     <span class="value-display" id="marginValue">20 ms</span>
@@ -342,7 +342,7 @@
             </div>
 
             <div class="param-group">
-                <label>Qualité vidéo (CRF - plus bas = meilleure qualité)</label>
+                <label>Video quality (CRF - lower = better quality)</label>
                 <div class="slider-container">
                     <input type="range" id="crf" min="15" max="30" value="18" step="1">
                     <span class="value-display" id="crfValue">18</span>
@@ -350,9 +350,9 @@
             </div>
 
             <div class="buttons">
-                <button class="btn-secondary" onclick="resetParameters()">Réinitialiser</button>
+                <button class="btn-secondary" onclick="resetParameters()">Reset</button>
                 <button class="btn-primary" id="processBtn" onclick="startProcessing()">
-                    🚀 Lancer le traitement
+                    🚀 Start Processing
                 </button>
             </div>
         </div>
@@ -361,27 +361,27 @@
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill">0%</div>
             </div>
-            <div class="status-message" id="statusMessage">Initialisation...</div>
+            <div class="status-message" id="statusMessage">Initializing...</div>
         </div>
 
         <div class="result" id="result">
-            <h3>✅ Traitement terminé !</h3>
+            <h3>✅ Processing Complete!</h3>
             <div class="stats">
                 <div class="stat">
                     <div class="stat-value" id="durationOriginal">-</div>
-                    <div class="stat-label">Durée originale</div>
+                    <div class="stat-label">Original duration</div>
                 </div>
                 <div class="stat">
                     <div class="stat-value" id="durationFinal">-</div>
-                    <div class="stat-label">Durée finale</div>
+                    <div class="stat-label">Final duration</div>
                 </div>
                 <div class="stat">
                     <div class="stat-value" id="reduction">-</div>
-                    <div class="stat-label">Réduction</div>
+                    <div class="stat-label">Reduction</div>
                 </div>
             </div>
             <button class="download-btn" id="downloadBtn">
-                ⬇️ Télécharger la vidéo traitée
+                ⬇️ Download Processed Video
             </button>
         </div>
 
@@ -485,7 +485,7 @@
             
             try {
                 // Upload
-                showProgress(0, "Upload du fichier...");
+                showProgress(0, "Uploading file...");
                 const formData = new FormData();
                 formData.append('file', selectedFile);
                 
@@ -530,7 +530,7 @@
                 // Le WebSocket prendra le relais pour les mises à jour
                 
             } catch (error) {
-                showError("Erreur : " + error.message);
+                showError("Error: " + error.message);
                 processBtn.disabled = false;
             }
         }
@@ -553,7 +553,7 @@
 
         function updateProgress(data) {
             const progress = data.progress || 0;
-            const message = data.message || "Traitement en cours...";
+            const message = data.message || "Processing...";
             
             showProgress(progress, message);
             
@@ -561,7 +561,7 @@
                 showResult(data);
                 document.getElementById('processBtn').disabled = false;
             } else if (data.status === 'failed') {
-                showError("Erreur : " + (data.error || "Le traitement a échoué"));
+                showError("Error: " + (data.error || "Processing failed"));
                 document.getElementById('processBtn').disabled = false;
             }
         }
