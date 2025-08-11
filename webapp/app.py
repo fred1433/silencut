@@ -38,7 +38,7 @@ app.add_middleware(
 UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("outputs")
 TEMP_DIR = Path("temp")
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500 MB
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB pour le plan Starter (512MB RAM)
 CLEANUP_AFTER_HOURS = 2
 
 # Créer les dossiers nécessaires

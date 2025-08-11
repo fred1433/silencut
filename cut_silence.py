@@ -8,11 +8,16 @@ import argparse
 import subprocess
 import sys
 import tempfile
+import gc  # Pour forcer le nettoyage mémoire
+import os
 from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
 import librosa
+
+# Limiter l'usage mémoire
+os.environ['OMP_NUM_THREADS'] = '1'
 import soundfile as sf
 
 
@@ -48,10 +53,12 @@ class SilenceDetector:
         ]
         subprocess.run(cmd, check=True)
     
-    def detect_activity(self, audio_path: str, sr: int = 48000) -> np.ndarray:
+    def detect_activity(self, audio_path: str, sr: int = 16000) -> np.ndarray:
         """Détecte l'activité vocale avec RMS et hystérésis."""
-        print(f"Chargement de l'audio...")
+        print(f"Chargement de l'audio (SR={sr}Hz pour économiser la RAM)...")
         y, _ = librosa.load(audio_path, sr=sr, mono=True)
+        duration = len(y) / sr
+        gc.collect()
         
         win = int(self.window_ms * sr / 1000)
         hop = int(self.hop_ms * sr / 1000)
@@ -71,7 +78,9 @@ class SilenceDetector:
                 in_silence = True
             mask_voice[i] = not in_silence
         
-        return mask_voice, hop / sr, len(y) / sr
+        del y  # Libérer la mémoire de l'audio
+        gc.collect()
+        return mask_voice, hop / sr, duration
     
     def apply_morphology(self, mask: np.ndarray, hop_duration: float) -> np.ndarray:
         """Applique la morphologie temporelle (fermeture/ouverture)."""
@@ -139,7 +148,9 @@ class SilenceDetector:
             print(f"Extraction de l'audio de {input_file}...")
             self.extract_audio(input_file, temp_wav)
             
+            # Utiliser 16kHz au lieu de 48kHz pour économiser la RAM
             mask, hop_duration, total_duration = self.detect_activity(temp_wav)
+            gc.collect()  # Nettoyer après l'analyse
             
             mask = self.apply_morphology(mask, hop_duration)
             
