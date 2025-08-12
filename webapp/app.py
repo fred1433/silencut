@@ -25,7 +25,7 @@ sys.path.append('..')
 from cut_silence import SilenceDetector, VideoProcessor
 from persist_jobs import save_jobs, load_jobs
 
-app = FastAPI(title="SilenCut API", version="1.0.0")
+app = FastAPI(title="SilenCut API", version="1.1.0")
 
 # Configuration CORS
 app.add_middleware(
