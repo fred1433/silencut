@@ -23,6 +23,11 @@ import sys
 import gc  # Garbage collector pour optimiser la mémoire
 sys.path.append('..')
 from cut_silence import SilenceDetector, VideoProcessor
+
+# Import local pour la persistance
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 from persist_jobs import save_jobs, load_jobs
 
 app = FastAPI(title="SilenCut API", version="1.1.0")
