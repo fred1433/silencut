@@ -22,7 +22,15 @@ import aiofiles
 import sys
 import gc  # Garbage collector pour optimiser la mémoire
 sys.path.append('..')
-from cut_silence import SilenceDetector, VideoProcessor
+
+# Utiliser la version FFmpeg légère pour économiser la RAM
+try:
+    from cut_silence_ffmpeg import FFmpegSilenceDetector as SilenceDetector
+    from cut_silence_ffmpeg import FFmpegVideoProcessor as VideoProcessor
+    print("✅ Using lightweight FFmpeg version")
+except ImportError:
+    from cut_silence import SilenceDetector, VideoProcessor
+    print("⚠️ Using standard librosa version")
 
 # Import local pour la persistance
 import os
@@ -203,14 +211,26 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         # Libérer la mémoire après chaque étape
         gc.collect()
         
-        # Créer le détecteur avec les paramètres
-        detector = SilenceDetector(
-            threshold_db=params.threshold_db,
-            min_silence_ms=params.min_silence_ms,
-            min_noise_ms=params.min_noise_ms,
-            hysteresis_db=params.hysteresis_db,
-            margin_ms=params.margin_ms
-        )
+        # Créer le détecteur avec les paramètres adaptés
+        # La version FFmpeg a des paramètres différents
+        try:
+            # Version FFmpeg légère
+            detector = SilenceDetector(
+                threshold_db=params.threshold_db,
+                min_silence_duration=params.min_silence_ms / 1000.0,
+                margin_ms=params.margin_ms
+            )
+            intervals = detector.get_audio_segments(str(input_path))
+        except TypeError:
+            # Version librosa standard
+            detector = SilenceDetector(
+                threshold_db=params.threshold_db,
+                min_silence_ms=params.min_silence_ms,
+                min_noise_ms=params.min_noise_ms,
+                hysteresis_db=params.hysteresis_db,
+                margin_ms=params.margin_ms
+            )
+            intervals = detector.process(str(input_path))
         
         # Traitement
         job["progress"] = 30.0
@@ -218,8 +238,6 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         save_jobs(jobs)
         await notify_progress(job_id, job)
         gc.collect()
-        
-        intervals = detector.process(str(input_path))
         
         if not intervals:
             raise ValueError("Aucun segment audio détecté")
