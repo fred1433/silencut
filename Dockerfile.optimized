@@ -1,0 +1,24 @@
+# Build plus rapide avec meilleur cache
+FROM python:3.11-slim
+
+# Installer FFmpeg en premier (change rarement)
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copier requirements en premier (pour cache)
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier webapp requirements
+COPY webapp/requirements.txt webapp/
+RUN pip install --no-cache-dir -r webapp/requirements.txt
+
+# Copier le code seulement à la fin
+COPY . .
+
+WORKDIR /app/webapp
+EXPOSE 8000
+CMD ["python", "app.py"]

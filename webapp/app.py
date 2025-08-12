@@ -20,8 +20,10 @@ import aiofiles
 
 # Import de notre module de traitement
 import sys
+import gc  # Garbage collector pour optimiser la mémoire
 sys.path.append('..')
 from cut_silence import SilenceDetector, VideoProcessor
+from persist_jobs import save_jobs, load_jobs
 
 app = FastAPI(title="SilenCut API", version="1.0.0")
 
@@ -45,8 +47,8 @@ CLEANUP_AFTER_HOURS = 2
 for dir_path in [UPLOAD_DIR, OUTPUT_DIR, TEMP_DIR]:
     dir_path.mkdir(exist_ok=True)
 
-# Stockage des jobs en mémoire (utiliser Redis en production)
-jobs: Dict[str, Dict[str, Any]] = {}
+# Stockage des jobs avec persistance
+jobs: Dict[str, Dict[str, Any]] = load_jobs()
 
 # WebSocket connections pour les notifications
 websocket_connections: Dict[str, WebSocket] = {}
@@ -131,6 +133,7 @@ async def upload_video(
         "file_size": file_size,
         "original_filename": file.filename
     }
+    save_jobs(jobs)  # Persister après création
     
     # Programmer le nettoyage automatique
     background_tasks.add_task(cleanup_old_files)
@@ -162,6 +165,7 @@ async def process_video(
     job["status"] = "pending"
     job["message"] = "Traitement en file d'attente..."
     job["params"] = params.dict()
+    save_jobs(jobs)  # Persister après mise à jour
     
     # Lancer le traitement en arrière-plan
     background_tasks.add_task(process_video_task, job_id, params)
@@ -188,7 +192,11 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         job["status"] = "processing"
         job["progress"] = 10.0
         job["message"] = "Analyse de l'audio en cours..."
+        save_jobs(jobs)  # Persister après mise à jour
         await notify_progress(job_id, job)
+        
+        # Libérer la mémoire après chaque étape
+        gc.collect()
         
         # Créer le détecteur avec les paramètres
         detector = SilenceDetector(
@@ -202,7 +210,9 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         # Traitement
         job["progress"] = 30.0
         job["message"] = "Détection des silences..."
+        save_jobs(jobs)
         await notify_progress(job_id, job)
+        gc.collect()
         
         intervals = detector.process(str(input_path))
         
@@ -211,7 +221,9 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         
         job["progress"] = 60.0
         job["message"] = f"Génération de la vidéo ({len(intervals)} segments)..."
+        save_jobs(jobs)
         await notify_progress(job_id, job)
+        gc.collect()
         
         # Rendu vidéo
         processor = VideoProcessor(crf=params.crf, audio_bitrate=params.audio_bitrate)
@@ -236,16 +248,29 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         job["duration_original"] = duration_original
         job["duration_final"] = duration_final
         job["reduction_percent"] = reduction
+        save_jobs(jobs)
         
         await notify_progress(job_id, job)
+        gc.collect()
         
+    except MemoryError:
+        job["status"] = "failed"
+        job["progress"] = 0.0
+        job["message"] = "Fichier trop volumineux pour le plan actuel"
+        job["error"] = "Mémoire insuffisante. Essayez un fichier plus petit (max 50MB)."
+        save_jobs(jobs)
+        await notify_progress(job_id, job)
+        print(f"Erreur mémoire {job_id}")
+        gc.collect()
     except Exception as e:
         job["status"] = "failed"
         job["progress"] = 0.0
         job["message"] = "Échec du traitement"
         job["error"] = str(e)
+        save_jobs(jobs)
         await notify_progress(job_id, job)
         print(f"Erreur traitement {job_id}: {e}")
+        gc.collect()
 
 
 @app.get("/status/{job_id}")
@@ -346,6 +371,9 @@ async def cleanup_old_files():
             
             # Supprimer le job
             del jobs[job_id]
+    
+    save_jobs(jobs)  # Persister après nettoyage
+    gc.collect()  # Libérer la mémoire
 
 
 @app.get("/health")
@@ -356,4 +384,14 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    import os
+    
+    # Optimisations mémoire pour l'environnement de production
+    os.environ['LIBROSA_CACHE_DIR'] = '/tmp/librosa_cache'
+    os.environ['NUMBA_CACHE_DIR'] = '/tmp/numba_cache'
+    
+    # Forcer un garbage collection au démarrage
+    gc.collect()
+    
+    print(f"🚀 Démarrage de SilenCut avec {len(jobs)} jobs restaurés")
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
