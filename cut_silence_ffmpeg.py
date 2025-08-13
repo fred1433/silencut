@@ -27,7 +27,7 @@ class FFmpegSilenceDetector:
             'ffmpeg',
             '-hide_banner', '-nostats',
             '-analyzeduration', '0', '-probesize', '32k',
-            '-threads', '1',
+            '-threads', '2',  # Augmenté de 1 à 2
             '-vn', '-sn', '-dn',
             '-i', input_file,
             '-af', f'silencedetect=noise={self.threshold_db}dB:d={self.min_silence_duration}',
@@ -110,14 +110,14 @@ class FFmpegVideoProcessor:
         cmd = [
             'ffmpeg',
             # Lecture d'entrée avec analyse réduite pour limiter la RAM
-            '-analyzeduration', '0', '-probesize', '32k',
+            '-analyzeduration', '100M', '-probesize', '50M',  # Augmenté pour meilleure détection
             # Entrée
             '-i', input_file,
-            # Limiter le parallélisme dans le graphe de filtres et les codecs
-            '-filter_threads', '1', '-filter_complex_threads', '1',
+            # Parallélisme modéré dans le graphe de filtres et les codecs
+            '-filter_threads', '2', '-filter_complex_threads', '2',  # Augmenté de 1 à 2
             '-filter_complex', filter_complex,
             '-map', '[outv]', '-map', '[outa]',
-            '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '1', '-crf', str(self.crf),
+            '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '2', '-crf', str(self.crf),  # veryfast + 2 threads
             '-c:a', 'aac', '-b:a', self.audio_bitrate,
             '-movflags', '+faststart',
             '-y', output_file

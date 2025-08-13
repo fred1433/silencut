@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -83,7 +83,7 @@ class ProcessRequest(BaseModel):
     min_noise_ms: float = Field(default=70.0, ge=0, le=500)
     hysteresis_db: float = Field(default=3.0, ge=1, le=10)
     margin_ms: float = Field(default=20.0, ge=0, le=200)
-    crf: int = Field(default=18, ge=0, le=51)
+    crf: int = Field(default=20, ge=0, le=51)  # 20 est un bon compromis qualité/taille
     audio_bitrate: str = Field(default="192k")
 
 
@@ -422,6 +422,24 @@ async def cleanup_old_files():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "jobs_count": len(jobs)}
+
+
+@app.get("/sitemap.xml", response_class=PlainTextResponse)
+async def sitemap():
+    """Serve sitemap.xml for SEO"""
+    sitemap_path = Path(__file__).parent / "static" / "sitemap.xml"
+    if sitemap_path.exists():
+        return PlainTextResponse(content=sitemap_path.read_text(), media_type="application/xml")
+    raise HTTPException(404, "Sitemap not found")
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots():
+    """Serve robots.txt for SEO"""
+    robots_path = Path(__file__).parent / "static" / "robots.txt"
+    if robots_path.exists():
+        return PlainTextResponse(content=robots_path.read_text())
+    raise HTTPException(404, "Robots.txt not found")
 
 
 if __name__ == "__main__":
