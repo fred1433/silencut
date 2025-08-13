@@ -43,6 +43,7 @@ import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 from persist_jobs import save_jobs, load_jobs
+from daily_stats import track_page_view, track_video_processed, track_upload, track_error, get_stats_summary
 
 app = FastAPI(title="SilenCut API", version="1.1.0")
 
@@ -105,6 +106,9 @@ class JobStatus(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def home():
     """Page d'accueil avec interface simple"""
+    # Tracking des visites
+    track_page_view()
+    print(f"🌐 Page visit at {datetime.now().isoformat()}")
     html_path = Path(__file__).parent / "static" / "index.html"
     return HTMLResponse(content=html_path.read_text())
 
@@ -156,6 +160,7 @@ async def upload_video(
         "original_filename": file.filename
     }
     save_jobs(jobs)  # Persister après création
+    track_upload()  # Tracking
     
     # Programmer le nettoyage automatique
     background_tasks.add_task(cleanup_old_files)
@@ -313,6 +318,10 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         job["reduction_percent"] = reduction
         save_jobs(jobs)
         
+        # Log et tracking
+        print(f"✅ VIDEO CONVERTED: {job['original_filename']} | Original: {duration_original:.1f}s | Final: {duration_final:.1f}s | Reduction: {reduction:.1f}%")
+        track_video_processed(duration_original, duration_final)
+        
         await notify_progress(job_id, job)
         gc.collect()
         
@@ -331,6 +340,7 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         job["message"] = "Échec du traitement"
         job["error"] = str(e)
         save_jobs(jobs)
+        track_error()  # Tracking
         await notify_progress(job_id, job)
         print(f"Erreur traitement {job_id}: {e}")
         gc.collect()
@@ -449,6 +459,12 @@ async def cleanup_old_files():
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "jobs_count": len(jobs)}
+
+
+@app.get("/stats")
+async def get_stats():
+    """Endpoint des stats complètes avec historique"""
+    return get_stats_summary()
 
 
 @app.get("/sitemap.xml", response_class=PlainTextResponse)
