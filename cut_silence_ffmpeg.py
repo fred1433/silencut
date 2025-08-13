@@ -24,7 +24,12 @@ class FFmpegSilenceDetector:
     def detect_silence(self, input_file: str) -> List[Tuple[float, float]]:
         """Détecte les silences avec FFmpeg"""
         cmd = [
-            'ffmpeg', '-i', input_file,
+            'ffmpeg',
+            '-hide_banner', '-nostats',
+            '-analyzeduration', '0', '-probesize', '32k',
+            '-threads', '1',
+            '-vn', '-sn', '-dn',
+            '-i', input_file,
             '-af', f'silencedetect=noise={self.threshold_db}dB:d={self.min_silence_duration}',
             '-f', 'null', '-'
         ]
@@ -77,8 +82,9 @@ class FFmpegSilenceDetector:
 
 
 class FFmpegVideoProcessor:
-    def __init__(self, crf: int = 18):
+    def __init__(self, crf: int = 18, audio_bitrate: str = '192k'):
         self.crf = crf
+        self.audio_bitrate = audio_bitrate
     
     def render(self, input_file: str, output_file: str, segments: List[Tuple[float, float]]):
         """Génère la vidéo finale avec FFmpeg uniquement"""
@@ -102,11 +108,17 @@ class FFmpegVideoProcessor:
         
         # Commande FFmpeg
         cmd = [
-            'ffmpeg', '-i', input_file,
+            'ffmpeg',
+            # Lecture d'entrée avec analyse réduite pour limiter la RAM
+            '-analyzeduration', '0', '-probesize', '32k',
+            # Entrée
+            '-i', input_file,
+            # Limiter le parallélisme dans le graphe de filtres et les codecs
+            '-filter_threads', '1', '-filter_complex_threads', '1',
             '-filter_complex', filter_complex,
             '-map', '[outv]', '-map', '[outa]',
-            '-c:v', 'libx264', '-crf', str(self.crf),
-            '-c:a', 'aac', '-b:a', '192k',
+            '-c:v', 'libx264', '-preset', 'veryfast', '-threads', '1', '-crf', str(self.crf),
+            '-c:a', 'aac', '-b:a', self.audio_bitrate,
             '-movflags', '+faststart',
             '-y', output_file
         ]

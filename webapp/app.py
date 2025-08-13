@@ -23,6 +23,12 @@ import sys
 import gc  # Garbage collector pour optimiser la mémoire
 sys.path.append('..')
 
+# Limiter le parallélisme des libs natives (utile même si non utilisées)
+os.environ.setdefault('OMP_NUM_THREADS', '1')
+os.environ.setdefault('OPENBLAS_NUM_THREADS', '1')
+os.environ.setdefault('MKL_NUM_THREADS', '1')
+os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
+
 # Utiliser la version FFmpeg légère pour économiser la RAM
 try:
     from cut_silence_ffmpeg import FFmpegSilenceDetector as SilenceDetector
@@ -65,6 +71,9 @@ jobs: Dict[str, Dict[str, Any]] = load_jobs()
 
 # WebSocket connections pour les notifications
 websocket_connections: Dict[str, WebSocket] = {}
+
+# Sémaphore globale pour éviter plusieurs encodages simultanés (512MB RAM)
+PROCESSING_SEMAPHORE = asyncio.Semaphore(1)
 
 
 class ProcessRequest(BaseModel):
@@ -200,6 +209,9 @@ async def process_video_task(job_id: str, params: ProcessRequest):
     output_filename = f"{job_id}_processed.mp4"
     output_path = OUTPUT_DIR / output_filename
     
+    # S'assurer qu'un seul traitement FFmpeg tourne à la fois
+    await PROCESSING_SEMAPHORE.acquire()
+
     try:
         # Mettre à jour le statut
         job["status"] = "processing"
@@ -248,7 +260,8 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         await notify_progress(job_id, job)
         gc.collect()
         
-        # Rendu vidéo
+        # Rendu vidéo (fixer les threads FFmpeg via env pour plus de sécurité)
+        os.environ.setdefault('FFMPEG_THREADS', '1')
         processor = VideoProcessor(crf=params.crf, audio_bitrate=params.audio_bitrate)
         processor.render(str(input_path), str(output_path), intervals)
         
@@ -294,6 +307,12 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         await notify_progress(job_id, job)
         print(f"Erreur traitement {job_id}: {e}")
         gc.collect()
+    finally:
+        # Libérer le sémaphore quoi qu'il arrive
+        try:
+            PROCESSING_SEMAPHORE.release()
+        except Exception:
+            pass
 
 
 @app.get("/status/{job_id}")
