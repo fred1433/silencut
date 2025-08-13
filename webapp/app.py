@@ -209,6 +209,11 @@ async def process_video_task(job_id: str, params: ProcessRequest):
     output_filename = f"{job_id}_processed.mp4"
     output_path = OUTPUT_DIR / output_filename
     
+    # Optimisation: preset plus rapide pour petits fichiers
+    file_size = job.get("file_size", 0)
+    if file_size < 50 * 1024 * 1024:  # < 50MB
+        print(f"🚀 Using fast mode for small file ({file_size/1024/1024:.1f}MB)")
+    
     # S'assurer qu'un seul traitement FFmpeg tourne à la fois
     await PROCESSING_SEMAPHORE.acquire()
 
@@ -224,25 +229,44 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         gc.collect()
         
         # Créer le détecteur avec les paramètres adaptés
-        # La version FFmpeg a des paramètres différents
-        try:
-            # Version FFmpeg légère
-            detector = SilenceDetector(
-                threshold_db=params.threshold_db,
-                min_silence_duration=params.min_silence_ms / 1000.0,
-                margin_ms=params.margin_ms
-            )
-            intervals = detector.get_audio_segments(str(input_path))
-        except TypeError:
-            # Version librosa standard
-            detector = SilenceDetector(
-                threshold_db=params.threshold_db,
-                min_silence_ms=params.min_silence_ms,
-                min_noise_ms=params.min_noise_ms,
-                hysteresis_db=params.hysteresis_db,
-                margin_ms=params.margin_ms
-            )
-            intervals = detector.process(str(input_path))
+        # Utiliser la version rapide pour petits fichiers
+        if file_size < 50 * 1024 * 1024:  # < 50MB
+            # Version rapide pour petits fichiers
+            try:
+                from cut_silence_ffmpeg_fast import FFmpegSilenceDetectorFast as FastDetector
+                from cut_silence_ffmpeg_fast import FFmpegVideoProcessorFast as FastProcessor
+                use_fast = True
+                detector = FastDetector(
+                    threshold_db=params.threshold_db,
+                    min_silence_duration=params.min_silence_ms / 1000.0,
+                    margin_ms=params.margin_ms
+                )
+                intervals = detector.get_audio_segments(str(input_path))
+            except ImportError:
+                use_fast = False
+        else:
+            use_fast = False
+        
+        if not use_fast:
+            # Version standard
+            try:
+                # Version FFmpeg légère
+                detector = SilenceDetector(
+                    threshold_db=params.threshold_db,
+                    min_silence_duration=params.min_silence_ms / 1000.0,
+                    margin_ms=params.margin_ms
+                )
+                intervals = detector.get_audio_segments(str(input_path))
+            except TypeError:
+                # Version librosa standard
+                detector = SilenceDetector(
+                    threshold_db=params.threshold_db,
+                    min_silence_ms=params.min_silence_ms,
+                    min_noise_ms=params.min_noise_ms,
+                    hysteresis_db=params.hysteresis_db,
+                    margin_ms=params.margin_ms
+                )
+                intervals = detector.process(str(input_path))
         
         # Traitement
         job["progress"] = 30.0
@@ -260,9 +284,12 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         await notify_progress(job_id, job)
         gc.collect()
         
-        # Rendu vidéo (fixer les threads FFmpeg via env pour plus de sécurité)
+        # Rendu vidéo (utiliser le processeur rapide si applicable)
         os.environ.setdefault('FFMPEG_THREADS', '1')
-        processor = VideoProcessor(crf=params.crf, audio_bitrate=params.audio_bitrate)
+        if use_fast:
+            processor = FastProcessor(crf=params.crf, audio_bitrate=params.audio_bitrate)
+        else:
+            processor = VideoProcessor(crf=params.crf, audio_bitrate=params.audio_bitrate)
         processor.render(str(input_path), str(output_path), intervals)
         
         # Calculer les statistiques
