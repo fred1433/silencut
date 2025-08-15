@@ -145,6 +145,8 @@ async def upload_video(
     except Exception as e:
         if input_path.exists():
             input_path.unlink()
+        track_error()  # Tracking des erreurs d'upload
+        print(f"❌ UPLOAD ERROR: {str(e)}")
         raise HTTPException(500, f"Erreur lors de l'upload: {str(e)}")
     
     # Créer le job
@@ -331,8 +333,9 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         job["message"] = "Fichier trop volumineux pour le plan actuel"
         job["error"] = "Mémoire insuffisante. Essayez un fichier plus petit (max 50MB)."
         save_jobs(jobs)
+        track_error()  # Tracking ajouté
         await notify_progress(job_id, job)
-        print(f"Erreur mémoire {job_id}")
+        print(f"❌ MEMORY ERROR {job_id}")
         gc.collect()
     except Exception as e:
         job["status"] = "failed"
@@ -342,7 +345,7 @@ async def process_video_task(job_id: str, params: ProcessRequest):
         save_jobs(jobs)
         track_error()  # Tracking
         await notify_progress(job_id, job)
-        print(f"Erreur traitement {job_id}: {e}")
+        print(f"❌ PROCESSING ERROR {job_id}: {e}")
         gc.collect()
     finally:
         # Libérer le sémaphore quoi qu'il arrive
